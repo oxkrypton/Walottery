@@ -1,5 +1,6 @@
-
-walottery/build/
+move/build/
 traces/*
 .trace
 .coverage*
+node_modules
+dist/
