@@ -1,4 +1,5 @@
-build/*
+
+walottery/build/
 traces/*
 .trace
 .coverage*
