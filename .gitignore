@@ -3,4 +3,3 @@ traces/*
 .trace
 .coverage*
 node_modules
-dist/

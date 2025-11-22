@@ -1,71 +1,27 @@
-import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
-import {
-  Box,
-  Container,
-  Flex,
-  Heading,
-  Section,
-  Text,
-} from "@radix-ui/themes";
+import { ConnectButton } from "@mysten/dapp-kit";
 
 function App() {
-  const currentAccount = useCurrentAccount();
-
-  return (
-    <>
-      <Flex
-        position="sticky"
-        px="4"
-        py="2"
-        justify="between"
-        style={{
-          borderBottom: "1px solid var(--gray-a2)",
-        }}
-      >
-        <Box>
-          <Heading>Walottery Dashboard</Heading>
-          <Text size="2" color="gray">
-            Frontend scaffold for interacting with the Move contracts in /move
-          </Text>
-        </Box>
-
-        <Box>
-          <ConnectButton />
-        </Box>
-      </Flex>
-
-      <Container size="3" mt="5" px="4" pb="6">
-        <Section size="2" mb="4" style={{ background: "var(--gray-a2)" }}>
-          <Heading size="4">Connection Status</Heading>
-          <Text size="2" color="gray">
-            {currentAccount
-              ? `Connected as ${currentAccount.address}`
-              : "请先连接 Sui 钱包以加载 Walottery 数据。"}
-          </Text>
-        </Section>
-
-        <Section
-          size="2"
-          mb="4"
-          style={{ background: "var(--gray-a2)", minHeight: "140px" }}
-        >
-          <Heading size="4">Lottery Overview</Heading>
-          <Text size="2" color="gray">
-            在这里接入合约读取：奖池列表、开奖时间、中奖名单等等。此模板目前仅保留 UI
-            框架和 WalletProvider，可按照业务需求填充组件。
-          </Text>
-        </Section>
-
-        <Section size="2" style={{ background: "var(--gray-a2)" }}>
-          <Heading size="4">Actions</Heading>
-          <Text size="2" color="gray">
-            未来可在此加入创建抽奖、参与、开奖、领取等交互按钮。随着 Move 合约更新，
-            只需在 src 目录下添加对应的 hooks / 组件即可。
-          </Text>
-        </Section>
-      </Container>
-    </>
-  );
+    return (
+        <div className="min-h-screen bg-background text-foreground">
+            <header className="border-b bg-background/80 backdrop-blur">
+                <div className="container flex h-16 items-center justify-between">
+                    <p className="text-lg font-semibold">Walottery</p>
+                    <ConnectButton />
+                </div>
+            </header>
+            <main className="container flex flex-col items-center justify-center gap-6 py-24 text-center">
+                <h1 className="text-3xl font-semibold">Frontend scaffold</h1>
+                <p className="max-w-xl text-muted-foreground">
+                    All previous UI components have been removed. Start building your experience here when you are ready to hook
+                    into the Move contracts and wallet interactions.
+                </p>
+                <div className="rounded-lg border px-6 py-4 text-sm text-muted-foreground">
+                    Add sections, routes, or components as needed. This placeholder keeps the provider stack intact so hooks from
+                    @mysten/dapp-kit will continue to work once you re-introduce them.
+                </div>
+            </main>
+        </div>
+    );
 }
 
 export default App;

@@ -12,7 +12,8 @@ const { networkConfig, useNetworkVariable, useNetworkVariables } =
     testnet: {
       url: getFullnodeUrl("testnet"),
       variables: {
-        lotteryPackageId: "",
+        lotteryPackageId:
+          "0xdd1734cf0a9cf98897e6a85c0b5355cb4471c63e42f4b8dbaf90d6d677573321",
       },
     },
     mainnet: {
