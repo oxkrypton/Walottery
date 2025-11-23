@@ -1,6 +1,6 @@
 # Walottery 合约调用说明（Frontend）
 
-本文件汇总 `move/` 目录中各模块可供前端调用的入口，以及交互时需要的主要参数/注意事项。所有模块都属于 `0xdd1734cf0a9cf98897e6a85c0b5355cb4471c63e42f4b8dbaf90d6d677573321::` 命名空间（testnet 部署）。
+本文件汇总 `move/` 目录中各模块可供前端调用的入口，以及交互时需要的主要参数/注意事项。所有模块都属于 `0x6ffdbb10cf3cd3dc69e96d5461f01288d16c1bc10636cac5a09f47032d4b6c76` 命名空间（testnet 部署）。
 
 ## 模块概览
 
@@ -85,6 +85,17 @@ entry fun seal_approve(
 - 用于 Seal Key Server 在解密前执行 dry-run：只有创建者地址 (`lottery.creator`) 可以通过校验。
 - `_id` 为 Seal identity（内部字段），无需合约处理。
 - 调用者不是创建者则会以 `E_SEAL_NO_ACCESS` 中止。
+- `seal_approve*` 函数在 Seal 评估期间通过 fullnode 的 `dry_run_transaction_block` 执行，必须无副作用且不要依赖快速变化的链上状态。
+
+### Seal 前端集成
+
+- 前端侧的 Seal SDK 负责生成 `(seal_id, encrypted_info)`：
+  - 在 `.env` 中设置 `VITE_SEAL_KEY_SERVERS`（JSON 数组或逗号分隔）来指明 KeyServer 对象 ID 及权重，例如  
+    `VITE_SEAL_KEY_SERVERS='[{"objectId":"0x...","weight":1}]'`。
+  - 可选：`VITE_SEAL_RPC_URL`（默认使用 testnet fullnode）、`VITE_SEAL_THRESHOLD`、`VITE_SEAL_IDENTITY_PREFIX`、`VITE_SEAL_VERIFY_KEY_SERVERS`.
+  - App 端通过 `SealClient.encrypt` 生成密文。identity 推荐拼接 `prefix:lottery_id:winner_address`，以便后续 `seal_approve` 匹配。
+- Seal SDK 会在本地创建 `SealClient` 并访问配置好的 KeyServer。KeyServer 只需注册一次，保持固定列表可避免被假冒；如果允许用户自选 KeyServer，请启用 `verifyKeyServers`.
+- 中奖人提交表单后会触发 Seal 加密，然后把 `(seal_id bytes, encrypted_shipping_info bytes)` 传给链上的 `lottery_participation::claim`。
 
 ## 常见错误码
 

@@ -1,8 +1,16 @@
 module walottery::lottery_creation {
 
     use std::string::String;
+    use sui::event;
 
     use walottery::lottery_state::{Self as state, Lottery};
+
+    public struct LotteryCreated has copy, drop, store {
+        lottery_id: sui::object::ID,
+        creator: address,
+        deadline_ms: u64,
+        total_prize_units: u64,
+    }
 
     /// ============= 创建实物抽奖 =============
     #[allow(lint(public_entry))]
@@ -22,13 +30,22 @@ module walottery::lottery_creation {
 
         let (prize_templates, total_units) = state::build_prize_templates(names, quantities);
 
+        let creator = sui::tx_context::sender(ctx);
         let lottery = state::new_lottery(
-            sui::tx_context::sender(ctx),
+            creator,
             deadline_ms,
             total_units,
             prize_templates,
             ctx,
         );
+
+        let lottery_id = state::lottery_id(&lottery);
+        event::emit(LotteryCreated {
+            lottery_id,
+            creator,
+            deadline_ms,
+            total_prize_units: total_units,
+        });
 
         state::share_lottery(lottery);
     }

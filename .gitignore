@@ -3,3 +3,5 @@ traces/*
 .trace
 .coverage*
 node_modules
+.env
+log.md

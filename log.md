@@ -1,8 +1,8 @@
 # Walottery
 
 已部署/计划使用地址：
-- 0x771f3ceafbbb0b3482e335c151e4a20092b78083bbc74ecae19233f7162965f0
-- 0xddfa241c39ba6085ae6e1d179dce779d88779165d43d1d14a876297bd9eda6a8
+- 0x8415c40c9fde9027e289eff2943a360b9df8792217cbf7ecdb4667583b586f8d
+
 
 ## 合约概要
 `walottery::physical_lottery` 提供实物抽奖流程，核心共享对象 `Lottery` 持有奖品模板、截止时间、参与者、中奖者及其收货加密信息。使用 `sui::random` 打乱参与者与奖品顺序，确保每个地址最多中奖一次。

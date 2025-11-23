@@ -17,6 +17,10 @@ export default {
             },
         },
         extend: {
+            fontFamily: {
+                display: ["Space Grotesk", "Inter", "sans-serif"],
+                mono: ["Space Mono", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+            },
             colors: {
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",
@@ -51,6 +55,11 @@ export default {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
+                "sui-black": "#030508",
+                "sui-dark-gray": "#0A0F16",
+                "sui-blue": "#73D2FF",
+                "sui-green": "#66F6A3",
+                "sui-yellow": "#F7F08A",
             },
             borderRadius: {
                 lg: "var(--radius)",
@@ -70,6 +79,7 @@ export default {
             animation: {
                 "accordion-down": "accordion-down 0.2s ease-out",
                 "accordion-up": "accordion-up 0.2s ease-out",
+                "spin-slow": "spin 6s linear infinite",
             },
         },
     },

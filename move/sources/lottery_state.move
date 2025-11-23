@@ -172,6 +172,10 @@ module walottery::lottery_state {
         vector::push_back(&mut lottery.shipping_encrypted_infos, vector::empty<u8>());
     }
 
+    public(package) fun lottery_id(lottery: &Lottery): sui::object::ID {
+        sui::object::id(lottery)
+    }
+
     public(package) fun mark_settled(lottery: &mut Lottery) {
         lottery.settled = true;
     }
