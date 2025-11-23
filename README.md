@@ -56,3 +56,98 @@ future hooks/components share the same configuration.
 
 This setup keeps the Move contracts self-contained while giving the frontend a
 ready-to-use TypeScript baseline that speaks Sui wallets from day one.
+
+## Cloudflare Workers + Supabase backend
+
+All Worker entrypoints now live under `workers/`:
+
+```
+workers/api/index.ts      # HTTP API exposed via Cloudflare Workers
+workers/indexer/index.ts  # Scheduled Worker that ingests LotteryCreated events
+workers/watcher/index.ts  # Scheduled Worker that submits draw transactions
+workers/shared.ts         # Common helpers (Supabase + Sui clients, Move decoders)
+```
+
+Legacy Node scripts (`scripts/*.mjs`) were removed now that the Cloudflare Workers + Supabase
+pipeline supersedes the Express/PG setup. Use `wrangler` to run or develop workers locally.
+
+Each worker expects the following environment variables (add them to `wrangler.toml` or the
+Cloudflare dashboard):
+
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+- `WALOTTERY_PACKAGE_ID`
+- `SUI_FULLNODE_URL` (optional, falls back to `testnet`)
+- `LOTTERY_DRAW_PRIVATE_KEY` (only needed by `watcher/`)
+- `SUI_CLOCK_ID`, `SUI_RANDOM_ID` (optional overrides)
+- Optional tuning knobs such as `LOTTERY_INDEXER_BATCH_SIZE`, `LOTTERY_INDEXER_PAGES_PER_RUN`,
+  `LOTTERY_DRAW_BATCH_SIZE`, and `LOTTERY_API_ALLOWED_ORIGINS`.
+
+### Supabase schema
+
+Run the following SQL inside the Supabase SQL editor to mirror the tables used by the original
+Node.js scripts:
+
+```sql
+create table if not exists lottery_created_events (
+  id bigserial primary key,
+  lottery_id text not null unique,
+  creator text not null,
+  deadline_ms bigint not null,
+  total_prize_units bigint not null default 0,
+  tx_digest text not null,
+  event_seq bigint not null,
+  emitted_at timestamptz not null default timezone('utc', now()),
+  raw_event jsonb
+);
+
+create table if not exists lottery_indexer_state (
+  singleton boolean primary key default true,
+  cursor jsonb
+);
+```
+
+Grant the Supabase service role key to the Workers so they can upsert rows. Read-only anon keys are
+still fine for the frontend if you expose Supabase directly somewhere else.
+
+### Worker deployment with Wrangler
+
+Three ready-made configs live at the repository root:
+
+- `wrangler.api.toml` &mdash; HTTP API worker (`workers/api/index.ts`)
+- `wrangler.indexer.toml` &mdash; scheduled event ingester (`workers/indexer/index.ts`)
+- `wrangler.watcher.toml` &mdash; scheduled draw submitter (`workers/watcher/index.ts`)
+
+Replace the placeholder values under each file’s `[vars]` block with your deployed package ID,
+Supabase project URL, and preferred defaults. Keep sensitive values (Supabase service role key,
+`LOTTERY_DRAW_PRIVATE_KEY`, etc.) out of the file by setting them via Wrangler secrets:
+
+```bash
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config wrangler.api.toml
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config wrangler.indexer.toml
+wrangler secret put SUPABASE_SERVICE_ROLE_KEY --config wrangler.watcher.toml
+wrangler secret put LOTTERY_DRAW_PRIVATE_KEY --config wrangler.watcher.toml
+```
+
+Deploy each worker with:
+
+```bash
+wrangler deploy --config wrangler.api.toml
+wrangler deploy --config wrangler.indexer.toml
+wrangler deploy --config wrangler.watcher.toml
+```
+
+The indexer and watcher configs already include sample cron triggers; tweak them as needed for your
+desired cadence or switch to dashboard-based schedules if preferred.
+
+### Walrus static site
+
+The frontend build in `dist/` is static and can be uploaded to Walrus:
+
+```bash
+npm run build
+walrus site create walottery-ui   # run once
+walrus site deploy walottery-ui dist/
+```
+
+Point `VITE_LOTTERY_API_URL` to the Cloudflare Worker hostname so that the frontend reaches the new
+API.

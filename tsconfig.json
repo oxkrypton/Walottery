@@ -29,7 +29,11 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [
-    "src"
+    "src",
+    "api",
+    "indexer",
+    "watcher",
+    "workers"
   ],
   "references": [
     {

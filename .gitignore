@@ -5,3 +5,7 @@ traces/*
 node_modules
 .env
 .vscode
+.DS_Store
+wrangler.api.toml
+wrangler.indexer.toml
+wrangler.watcher.toml

@@ -18,7 +18,7 @@ const App: React.FC = () => {
       
       <footer className="bg-black border-t border-white/10 py-12 text-center">
         <p className="text-gray-600 text-sm">
-          &copy; {new Date().getFullYear()} SuiLotto. Built for Sui Network Hackathon.
+          &copy; {new Date().getFullYear()} WaLotto. Built for Haulout Hackathon.
         </p>
       </footer>
     </div>
