@@ -1,5 +1,5 @@
 # Walottery
-website: walottery.wal.app
+website: [walottery.wal.app](walottery.wal.app)
 
 site-builder: 0x1306ee3f78ae657d4220c7f7c24a19a41dfb1a881ba63d439b44650d3ec73f82
 
