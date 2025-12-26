@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Transaction } from '@mysten/sui/transactions';
 import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from '@mysten/dapp-kit';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { LotteryCard } from '../types';
 import { parseLotteryResponse } from '../utils';
 
@@ -14,49 +15,106 @@ export function useLotteries() {
   const currentAddress = currentAccount?.address ?? null;
   const { mutate: signAndExecute } = useSignAndExecuteTransaction();
   const suiClient = useSuiClient();
+  const queryClient = useQueryClient();
+  const queryKey = useMemo(() => ['lotteries', API_BASE], []);
 
-  const [lotteries, setLotteries] = useState<LotteryCard[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [claimingId, setClaimingId] = useState<string | null>(null);
 
-  const syncLottery = useCallback(async (lotteryId: string) => {
-    try {
-      await fetch(`${API_BASE}/lotteries`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+  const syncLottery = useMutation({
+    mutationFn: async (lotteryId: string) => {
+      try {
+        await fetch(`${API_BASE}/lotteries`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ lotteryId }),
+        });
+      } catch (err) {
+        console.warn('Failed to sync lottery with backend', err);
+      }
+    },
+  });
+
+  const loadLotteryMutation = useMutation({
+    mutationFn: async (objectId: string) => {
+      const result = await suiClient.getObject({
+        id: objectId,
+        options: {
+          showContent: true,
         },
-        body: JSON.stringify({ lotteryId }),
       });
-    } catch (err) {
-      console.warn('Failed to sync lottery with backend', err);
-    }
-  }, []);
+      return parseLotteryResponse(result);
+    },
+    onSuccess: (parsed) => {
+      if (!parsed) {
+        setError('Unable to parse lottery data.');
+        return;
+      }
+
+      queryClient.setQueryData<LotteryCard[]>(queryKey, (prev) => {
+        const items = prev ?? [];
+        return [parsed, ...items.filter((item) => item.id !== parsed.id)];
+      });
+      syncLottery.mutate(parsed.id);
+    },
+    onError: (loadError) => {
+      console.error('Failed to load lottery object', loadError);
+      setError(`Failed to load lottery.`);
+    },
+  });
+
+  const lotteriesQuery = useQuery({
+    queryKey,
+    queryFn: async (): Promise<LotteryCard[]> => {
+      const response = await fetch(`${API_BASE}/lotteries`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch lotteries: ${response.status}`);
+      }
+      const rows = (await response.json().catch(() => [])) as any[];
+      const ids = rows.map((row) => row?.lottery_id).filter(Boolean) as string[];
+      if (!ids.length) return [];
+
+      const results = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const object = await suiClient.getObject({
+              id,
+              options: {
+                showContent: true,
+              },
+            });
+            return parseLotteryResponse(object);
+          } catch (err) {
+            console.warn(`Failed to load lottery ${id}`, err);
+            return null;
+          }
+        }),
+      );
+
+      return results.filter((item): item is LotteryCard => Boolean(item));
+    },
+    staleTime: 15_000,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (!lotteriesQuery.isError) return;
+    setError((prev) => {
+      if (prev) return prev;
+      const queryError = lotteriesQuery.error;
+      return queryError instanceof Error ? queryError.message : 'Failed to load lotteries from server.';
+    });
+  }, [lotteriesQuery.isError, lotteriesQuery.error]);
 
   const loadLottery = useCallback(
     async (objectId: string) => {
-      try {
-        setError(null);
-        const result = await suiClient.getObject({
-          id: objectId,
-          options: {
-            showContent: true,
-          },
-        });
-        const parsed = parseLotteryResponse(result);
-        if (parsed) {
-          setLotteries((prev) => [parsed, ...prev.filter((item) => item.id !== parsed.id)]);
-          syncLottery(parsed.id);
-        } else {
-          setError(`Unable to parse lottery data for object ${objectId}.`);
-        }
-      } catch (loadError) {
-        console.error('Failed to load lottery object', loadError);
-        setError(`Failed to load lottery ${objectId}.`);
-      }
+      setError(null);
+      await loadLotteryMutation.mutateAsync(objectId);
     },
-    [suiClient, syncLottery],
+    [loadLotteryMutation],
   );
 
   const handleLotteryCreated = useCallback(
@@ -118,8 +176,9 @@ export function useLotteries() {
         { transaction: tx },
         {
           onSuccess: () => {
-            setLotteries((prev) =>
-              prev.map((lottery) => {
+            queryClient.setQueryData<LotteryCard[]>(queryKey, (prev) => {
+              const items = prev ?? [];
+              return items.map((lottery) => {
                 if (lottery.id !== lotteryId) return lottery;
                 const winnerIndex = lottery.winners?.findIndex(
                   (addr) => addr.toLowerCase() === winnerAddress,
@@ -133,8 +192,8 @@ export function useLotteries() {
                   ...lottery,
                   claimed: updatedClaimed,
                 };
-              }),
-            );
+              });
+            });
             loadLottery(lotteryId);
           },
           onError: (err) => {
@@ -150,27 +209,7 @@ export function useLotteries() {
     [currentAccount, loadLottery, signAndExecute],
   );
 
-  useEffect(() => {
-    async function fetchLotteries() {
-      try {
-        const response = await fetch(`${API_BASE}/lotteries`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch lotteries: ${response.status}`);
-        }
-        const rows = await response.json();
-        for (const row of rows) {
-          if (row.lottery_id) {
-            await loadLottery(row.lottery_id);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load lotteries from server', err);
-        setError('Failed to load lotteries from server.');
-      }
-    }
-
-    fetchLotteries();
-  }, [loadLottery]);
+  const lotteries = lotteriesQuery.data ?? [];
 
   return {
     lotteries,

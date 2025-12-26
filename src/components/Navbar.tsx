@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, Wallet } from 'lucide-react';
+import { Wallet } from 'lucide-react';
 import { ConnectModal, useCurrentAccount, useDisconnectWallet } from '@mysten/dapp-kit';
 
 const shortenAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -66,14 +66,6 @@ const Navbar: React.FC = () => {
           </div>
           <div className="hidden md:block">
             <ConnectWalletButton variant="desktop" />
-          </div>
-          <div className="-mr-2 flex md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 focus:outline-none"
-            >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
           </div>
         </div>
       </div>
